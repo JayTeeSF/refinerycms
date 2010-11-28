@@ -77,10 +77,10 @@ module Refinery
 
     def run!
       # Grab input and ensure that the path doesn't exist already and other checks.
-      validate!
-
-      # Generate a Refinery CMS application
-      generate!
+      if validate!
+        # Generate a Refinery CMS application
+        generate!
+      end
 
       # Add in the Refinery specifics to the application
       refine!
@@ -114,9 +114,13 @@ module Refinery
       @app_name = @app_path.to_s.split(File::SEPARATOR).last
 
       if @app_path.directory? and @options[:force] == false
-        puts "The directory '#{@app_path}' that you specified already exists."
-        puts "Use --force to overwrite an existing directory."
-        exit
+        if @options[:update] == true
+          return false
+        else
+          puts "The directory '#{@app_path}' that you specified already exists."
+          puts "Use --force to overwrite an existing directory."
+          exit
+        end
       end
     end
 
@@ -134,7 +138,7 @@ module Refinery
     def refine!
       # Overwrite rails defaults with refinery defaults
       %w(app db features spec).each do |folder|
-        FileUtils::cp_r Refinery.root.join(folder), @app_path, :verbose => false
+        FileUtils::cp_r Refinery.root.join(folder), @app_path, :verbose => true
       end
 
       # Copy in important files to the Rails app.
@@ -142,7 +146,7 @@ module Refinery
          lib/tasks/cucumber.rake lib/tasks/rspec.rake config/initializers/fix_rack.rb
          config/environments/development.rb config/environments/test.rb config/environments/production.rb
          config/initializers/acts_as_indexed_config.rb config/initializers/field_with_error_fix.rb).each do |file|
-        FileUtils::cp_r Refinery.root.join(file), @app_path.join(file), :verbose => false if Refinery.root.join(file).exist?
+        FileUtils::cp_r Refinery.root.join(file), @app_path.join(file), :verbose => true if Refinery.root.join(file).exist?
       end
 
       # Copy javascripts so they're ready to use.
@@ -151,7 +155,7 @@ module Refinery
       }.each do |javascript|
         FileUtils::cp javascript.to_s,
                       @app_path.join('public', 'javascripts').to_s,
-                      :verbose => false if javascript.file?
+                      :verbose => true if javascript.file?
       end
 
       # Copy stylesheets so they're ready to use.
@@ -160,11 +164,11 @@ module Refinery
       }.each do |stylesheet|
         FileUtils::cp stylesheet.to_s,
                       @app_path.join('public', 'stylesheets').to_s,
-                      :verbose => false if stylesheet.file?
+                      :verbose => true if stylesheet.file?
       end
 
       # Remove default application layout, README, and public/index.html
-      %w(README app/views/layouts/application.html.erb public/index.html).each do |remove|
+      %w(app/views/layouts/application.html.erb public/index.html).each do |remove|
 	      FileUtils::rm @app_path.join(remove) if @app_path.join(remove).exist?
       end
 
@@ -215,10 +219,10 @@ module Refinery
 
       unless @options[:update]
         puts "\n\nSetting up your development database..\n"
-        run_command("rake -f \"#{@app_path.join('Rakefile')}\" db:setup", {:cd => false})
+        #run_command("rake -f \"#{@app_path.join('Rakefile')}\" db:setup", {:cd => false})
       else
         puts "\n\nMigrating your development database..\n"
-        run_command("rake -f \"#{@app_path.join('Rakefile')}\" db:migrate", {:cd => false})
+        #run_command("rake -f \"#{@app_path.join('Rakefile')}\" db:migrate", {:cd => false})
       end
 
       # Deploy to Heroku
